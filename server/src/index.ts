@@ -5,10 +5,15 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { SERVER_CONFIG } from './config.js';
 import { getDb } from './db/index.js';
+import { runDemoSeed } from './seeds/demoSeed.js';
 import authRoutes from './routes/auth.js';
 import circleRoutes from './routes/circles.js';
 import reportRoutes from './routes/reports.js';
 import planRoutes from './routes/plan.js';
+import tripRoutes from './routes/trips.js';
+import sosRoutes from './routes/sos.js';
+import neighbourhoodRoutes from './routes/neighbourhoods.js';
+import walkTogetherRoutes from './routes/walkTogether.js';
 
 const app = express();
 
@@ -18,11 +23,19 @@ app.use(express.json());
 // Initialize database
 getDb();
 
+// Seed demo data if DEMO_MODE=true (§10)
+runDemoSeed().catch(console.error);
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/circles', circleRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/plan', planRoutes);
+app.use('/api/trips', tripRoutes);
+app.use('/api/sos', sosRoutes);
+app.use('/api/neighbourhoods', neighbourhoodRoutes);
+app.use('/api/community-reports', neighbourhoodRoutes);
+app.use('/api/walk-together', walkTogetherRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

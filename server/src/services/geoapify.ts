@@ -165,6 +165,15 @@ export class GeoapifyService {
     dest: LatLon,
     mode: string
   ): Promise<RawRouteAlternative | null> {
+    const db = getDb();
+    const cacheKey = `route_${origin.lat.toFixed(3)}_${origin.lon.toFixed(3)}__${dest.lat.toFixed(3)}_${dest.lon.toFixed(3)}_${mode}`;
+    const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000;
+
+    const cached = db.prepare('SELECT json, fetchedAt FROM places_cache WHERE key = ?').get(cacheKey) as any;
+    if (cached && cached.fetchedAt > sixHoursAgo) {
+      return JSON.parse(cached.json);
+    }
+
     try {
       const url = `https://api.geoapify.com/v1/routing?waypoints=${origin.lat},${origin.lon}|${dest.lat},${dest.lon}&mode=${mode}&apiKey=${this.apiKey}`;
       const res = await fetch(url);
@@ -179,7 +188,7 @@ export class GeoapifyService {
       // Count actual turn instructions
       const turns = steps.filter((s: any) => s.instruction?.text?.toLowerCase().includes('turn')).length;
 
-      return {
+      const result: RawRouteAlternative = {
         id: 'route_primary',
         distanceMeters: Math.round(p.distance),
         durationMinutes: Math.max(1, Math.round(p.time / 60)),
@@ -188,6 +197,14 @@ export class GeoapifyService {
         roadClasses: ['primary', 'secondary'],
         summary: mode === 'walk' ? 'Direct walking corridor' : 'Direct driving route',
       };
+
+      db.prepare(`
+        INSERT INTO places_cache (key, json, fetchedAt)
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET json = excluded.json, fetchedAt = excluded.fetchedAt
+      `).run(cacheKey, JSON.stringify(result), Date.now());
+
+      return result;
     } catch (err) {
       console.error('[GeoapifyService] fetchSingleRoute error:', err);
       return null;
@@ -201,6 +218,15 @@ export class GeoapifyService {
     mode: string,
     id: string
   ): Promise<RawRouteAlternative | null> {
+    const db = getDb();
+    const cacheKey = `route_${id}_${origin.lat.toFixed(3)}_${origin.lon.toFixed(3)}__${dest.lat.toFixed(3)}_${dest.lon.toFixed(3)}_${mode}`;
+    const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000;
+
+    const cached = db.prepare('SELECT json, fetchedAt FROM places_cache WHERE key = ?').get(cacheKey) as any;
+    if (cached && cached.fetchedAt > sixHoursAgo) {
+      return JSON.parse(cached.json);
+    }
+
     try {
       const url = `https://api.geoapify.com/v1/routing?waypoints=${origin.lat},${origin.lon}|${waypoint.lat},${waypoint.lon}|${dest.lat},${dest.lon}&mode=${mode}&apiKey=${this.apiKey}`;
       const res = await fetch(url);
@@ -217,7 +243,7 @@ export class GeoapifyService {
         ).length;
       }
 
-      return {
+      const result: RawRouteAlternative = {
         id,
         distanceMeters: Math.round(p.distance),
         durationMinutes: Math.max(1, Math.round(p.time / 60)),
@@ -226,6 +252,14 @@ export class GeoapifyService {
         roadClasses: id.includes('arterial') ? ['primary', 'primary', 'secondary'] : ['secondary', 'tertiary'],
         summary: id.includes('arterial') ? 'Main arterial well-lit boulevard' : 'Alternative bypass route',
       };
+
+      db.prepare(`
+        INSERT INTO places_cache (key, json, fetchedAt)
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET json = excluded.json, fetchedAt = excluded.fetchedAt
+      `).run(cacheKey, JSON.stringify(result), Date.now());
+
+      return result;
     } catch {
       return null;
     }
