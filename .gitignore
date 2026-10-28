@@ -4,5 +4,7 @@ dist/
 *.log
 *.sqlite*
 data/*.db
+data/*.db-shm
+data/*.db-wal
 .DS_Store
 .cache/

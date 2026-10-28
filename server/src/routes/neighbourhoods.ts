@@ -4,6 +4,7 @@ import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
 import { SEEDED_NEIGHBOURHOODS, SERVER_CONFIG } from '../config.js';
 import { CommunityReportDTO } from '@nightwise/shared';
+import { communityReportRateLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -27,7 +28,7 @@ router.get('/', (req, res) => {
   res.json({ neighbourhoods: result });
 });
 
-router.post('/community-reports', requireAuth, (req: AuthenticatedRequest, res) => {
+router.post('/community-reports', requireAuth, communityReportRateLimiter, (req: AuthenticatedRequest, res) => {
   const { category, segmentId, areaLabel, note } = req.body;
   const userId = req.user!.userId;
   const userHandle = req.user!.handle;

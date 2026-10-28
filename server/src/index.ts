@@ -14,6 +14,7 @@ import tripRoutes from './routes/trips.js';
 import sosRoutes from './routes/sos.js';
 import neighbourhoodRoutes from './routes/neighbourhoods.js';
 import walkTogetherRoutes from './routes/walkTogether.js';
+import moderationRoutes from './routes/moderation.js';
 
 const app = express();
 
@@ -30,6 +31,11 @@ runDemoSeed().catch(console.error);
 app.use('/api/auth', authRoutes);
 app.use('/api/circles', circleRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/admin/reports', (req, res, next) => {
+  req.url = '/admin';
+  reportRoutes(req, res, next);
+});
+app.use('/api/moderation', moderationRoutes);
 app.use('/api/plan', planRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/sos', sosRoutes);
@@ -65,9 +71,13 @@ if (resolvedDist) {
   });
 }
 
-const server = app.listen(SERVER_CONFIG.PORT, () => {
-  console.log(`[NightWise Server] Running on http://localhost:${SERVER_CONFIG.PORT}`);
-  console.log(`[NightWise Server] DEMO_MODE = ${SERVER_CONFIG.DEMO_MODE}`);
-});
+let server: any;
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(SERVER_CONFIG.PORT, () => {
+    console.log(`[NightWise Server] Running on http://localhost:${SERVER_CONFIG.PORT}`);
+    console.log(`[NightWise Server] DEMO_MODE = ${SERVER_CONFIG.DEMO_MODE}`);
+  });
+}
 
+export { server };
 export default app;

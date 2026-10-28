@@ -153,6 +153,29 @@ class ApiClient {
   }
 
   // --- Walk Together ---
+  async checkDmPermission(targetUserId: string): Promise<{ allowed: boolean; reason?: string; context?: string }> {
+    return this.request('/walk-together/check-dm-permission', {
+      method: 'POST',
+      body: JSON.stringify({ targetUserId }),
+    });
+  }
+
+  async getPendingWalkRequests(): Promise<{ requests: any[] }> {
+    return this.request('/walk-together/requests');
+  }
+
+  async getActiveWalkChats(): Promise<{ partners: any[] }> {
+    return this.request('/walk-together/active-chats');
+  }
+
+  async getCorridorMembers(corridorKey: string): Promise<{ members: any[] }> {
+    return this.request(`/trips/corridors/${encodeURIComponent(corridorKey)}/members`);
+  }
+
+  async getTrip(tripId: string): Promise<{ trip: any }> {
+    return this.request(`/trips/${tripId}`);
+  }
+
   async requestWalkTogether(params: { targetId: string; targetHandle: string; corridorKey: string; havenName: string; havenCoords: { lat: number; lon: number } }): Promise<any> {
     return this.request('/walk-together/request', {
       method: 'POST',

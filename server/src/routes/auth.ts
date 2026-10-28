@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { requestOtp, verifyOtpAndLogin, validateHandle, createJwtToken } from '../services/auth.js';
 import { nexconnService } from '../services/nexconn.js';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
+import { otpRateLimiter } from '../middleware/rateLimit.js';
 import { getDb } from '../db/index.js';
 
 const router = Router();
 
-router.post('/request-otp', async (req, res) => {
+router.post('/request-otp', otpRateLimiter, async (req, res) => {
   try {
     const { phone } = req.body;
     if (!phone) {

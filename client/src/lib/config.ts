@@ -10,6 +10,7 @@ export {
   NEXCONN_CUSTOM_MESSAGE_REGISTRATIONS,
   type ScoreFactorKey,
   type CustomMessageType,
+  type CommunityReportCategory,
   type TripStartedPayload,
   type CheckinPayload,
   type ImOkPayload,

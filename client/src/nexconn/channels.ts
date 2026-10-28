@@ -9,6 +9,7 @@ import {
 } from '@nexconn/chat';
 import { nexconnEngine } from './engine.js';
 import { CustomMessageType } from '../lib/config.js';
+import { api } from '../lib/api.js';
 
 export type SupportedChannelType = 'group' | 'open' | 'direct';
 
@@ -79,6 +80,18 @@ export class NexconnChannelService {
     targetId: string,
     text: string
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    // Rule R4: Backend enforcement of stranger DM restriction
+    if (type === 'direct') {
+      try {
+        const perm = await api.checkDmPermission(targetId);
+        if (!perm.allowed) {
+          return { success: false, error: perm.reason || 'Stranger DMs are restricted per Rule R4' };
+        }
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Stranger DMs are restricted per Rule R4' };
+      }
+    }
+
     const senderId = nexconnEngine.getCurrentUserId() || 'unknown';
 
     if (nexconnEngine.isUsingSimulation()) {
@@ -120,6 +133,18 @@ export class NexconnChannelService {
     messageType: CustomMessageType,
     content: T
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    // Rule R4: Backend enforcement of stranger DM restriction
+    if (type === 'direct') {
+      try {
+        const perm = await api.checkDmPermission(targetId);
+        if (!perm.allowed) {
+          return { success: false, error: perm.reason || 'Stranger DMs are restricted per Rule R4' };
+        }
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Stranger DMs are restricted per Rule R4' };
+      }
+    }
+
     const senderId = nexconnEngine.getCurrentUserId() || 'unknown';
 
     if (nexconnEngine.isUsingSimulation()) {

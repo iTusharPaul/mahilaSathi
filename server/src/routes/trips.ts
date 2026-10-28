@@ -3,10 +3,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
 import { nexconnService } from '../services/nexconn.js';
-import { computeCorridorKey, TripDTO } from '@nightwise/shared';
+import { computeCorridorKey, TripDTO, trimRouteGeometry, PRODUCT_CONSTANTS } from '@nightwise/shared';
 import { activePlansCache } from './plan.js';
 
 const router = Router();
+
+// Store active trip route geometries in-memory for live display & R3 trimming
+export const tripGeometries = new Map<string, [number, number][]>();
 
 // Start a new trip (§6.4, §8.3)
 router.post('/', requireAuth, async (req: AuthenticatedRequest, res) => {
@@ -99,6 +102,11 @@ router.post('/', requireAuth, async (req: AuthenticatedRequest, res) => {
       etaAt,
       now
     );
+
+    // Save geometry for retrieval & R3 trimming
+    if (route.coordinates && route.coordinates.length > 0) {
+      tripGeometries.set(tripId, route.coordinates);
+    }
 
     // 5. Query active headcount on this corridor
     const headcountRow = db.prepare(`
@@ -251,6 +259,105 @@ router.get('/active', requireAuth, (req: AuthenticatedRequest, res) => {
     },
     headcount: Math.max(1, headcountRow?.count || 1),
   });
+});
+
+// Inspect a specific trip with Rule R3 enforcement (Trim the ends: 300m for anyone other than self)
+router.get('/:id', requireAuth, (req: AuthenticatedRequest, res) => {
+  const tripId = req.params.id;
+  const db = getDb();
+  const currentUserId = req.user!.userId;
+
+  const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as any;
+  if (!trip) {
+    res.status(404).json({ error: 'Trip not found' });
+    return;
+  }
+
+  const isOwner = trip.userId === currentUserId;
+  const rawGeometry = tripGeometries.get(trip.id) || [];
+
+  // Rule R3: Trim ends by ROUTE_TRIM_METRES (300m) for strangers/guardians; exact for owner
+  const geometry = isOwner
+    ? rawGeometry
+    : trimRouteGeometry(rawGeometry, PRODUCT_CONSTANTS.ROUTE_TRIM_METRES);
+
+  res.json({
+    trip: {
+      id: trip.id,
+      originArea: trip.originArea,
+      destArea: trip.destArea,
+      mode: trip.mode,
+      score: trip.score,
+      startedAt: trip.startedAt,
+      etaAt: trip.etaAt,
+      status: trip.status,
+      geometry,
+      isTrimmed: !isOwner,
+      trimMetres: !isOwner ? PRODUCT_CONSTANTS.ROUTE_TRIM_METRES : 0,
+    },
+  });
+});
+
+// Security: Verify Journey Room access (Attack vector iv — cannot access corridor without an active trip)
+router.get('/corridors/:corridorKey/access', requireAuth, (req: AuthenticatedRequest, res) => {
+  const corridorKey = req.params.corridorKey;
+  const userId = req.user!.userId;
+  const db = getDb();
+
+  const activeTrip = db.prepare(`
+    SELECT id FROM trips
+    WHERE userId = ? AND corridorKey = ? AND (status = 'active' OR status = 'overdue')
+  `).get(userId, corridorKey);
+
+  if (!activeTrip) {
+    res.status(403).json({
+      allowed: false,
+      error: 'Access denied: You do not have an active trip registered on this corridor.',
+    });
+    return;
+  }
+
+  res.json({ allowed: true, corridorKey });
+});
+
+// Get corridor members (Rule R1 & R2: handles only, no exact coords, no phone numbers, must have active trip)
+router.get('/corridors/:corridorKey/members', requireAuth, (req: AuthenticatedRequest, res) => {
+  const corridorKey = req.params.corridorKey;
+  const userId = req.user!.userId;
+  const db = getDb();
+
+  // Verify requester has an active trip on this corridor
+  const requesterTrip = db.prepare(`
+    SELECT id FROM trips
+    WHERE userId = ? AND corridorKey = ? AND (status = 'active' OR status = 'overdue')
+  `).get(userId, corridorKey);
+
+  if (!requesterTrip) {
+    res.status(403).json({
+      error: 'Cannot view corridor members without an active trip on this corridor.',
+    });
+    return;
+  }
+
+  const memberRows = db.prepare(`
+    SELECT t.id as tripId, t.userId, u.handle, t.mode, t.startedAt, t.etaAt
+    FROM trips t
+    JOIN users u ON t.userId = u.id
+    WHERE t.corridorKey = ? AND (t.status = 'active' OR t.status = 'overdue')
+    ORDER BY t.startedAt ASC
+  `).all(corridorKey) as any[];
+
+  const now = Date.now();
+  const members = memberRows.map((m) => ({
+    tripId: m.tripId,
+    userId: m.userId,
+    handle: m.handle,
+    mode: m.mode,
+    startedAt: m.startedAt,
+    minutesRemaining: Math.max(0, Math.round((m.etaAt - now) / 60000)),
+  }));
+
+  res.json({ members });
 });
 
 export default router;

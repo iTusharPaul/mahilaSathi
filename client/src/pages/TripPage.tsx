@@ -82,6 +82,8 @@ export const TripPage: React.FC<TripPageProps> = ({
   const [selectedHavenForWalk, setSelectedHavenForWalk] = useState<SafeHaven | null>(
     route.safeHavens[0] || null
   );
+  const [corridorMembers, setCorridorMembers] = useState<any[]>([]);
+  const [selectedMemberForWalk, setSelectedMemberForWalk] = useState<string>('');
 
   // Completion modal
   const [arrivedSummaryOpen, setArrivedSummaryOpen] = useState(false);
@@ -354,21 +356,36 @@ export const TripPage: React.FC<TripPageProps> = ({
     await nexconnChannels.sendTextMessage('group', trip.journeyGroupId, txt);
   };
 
-  // Request Walk Together
+  const openWalkTogetherModal = async () => {
+    setWalkTogetherModalOpen(true);
+    try {
+      const res = await api.getCorridorMembers(trip.corridorKey);
+      const others = (res.members || []).filter((m: any) => m.userId !== user?.id);
+      setCorridorMembers(others);
+      if (others.length > 0) {
+        setSelectedMemberForWalk(others[0].userId);
+      }
+    } catch (err) {
+      console.warn('Failed to load corridor members:', err);
+    }
+  };
+
+  // Request Walk Together (§8.5, Rule R4)
   const handleRequestWalkTogether = async () => {
     if (!selectedHavenForWalk) return;
+    const targetMember = corridorMembers.find((m) => m.userId === selectedMemberForWalk) || corridorMembers[0];
     try {
       await api.requestWalkTogether({
-        targetId: 'room_fellow',
-        targetHandle: 'Corridor Companion',
+        targetId: targetMember?.userId || 'room_fellow',
+        targetHandle: targetMember?.handle || 'Fellow Traveller',
         corridorKey: trip.corridorKey,
         havenName: selectedHavenForWalk.name,
         havenCoords: { lat: selectedHavenForWalk.lat, lon: selectedHavenForWalk.lon },
       });
-      alert(`Walk Together invite sent! Meeting point: ${selectedHavenForWalk.name}. 1-to-1 chat will unlock upon mutual acceptance.`);
+      alert(`Walk Together invite sent to ${targetMember?.handle || 'traveller'}! Meeting point: ${selectedHavenForWalk.name}. 1-to-1 chat will unlock upon mutual acceptance.`);
       setWalkTogetherModalOpen(false);
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message || 'Failed to send Walk Together request');
     }
   };
 
@@ -488,7 +505,7 @@ export const TripPage: React.FC<TripPageProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setWalkTogetherModalOpen(true);
+                  openWalkTogetherModal();
                 }}
                 className="px-2.5 py-1 rounded-lg bg-teal-700/80 hover:bg-teal-600 text-white text-[11px] font-semibold transition"
               >
@@ -603,6 +620,29 @@ export const TripPage: React.FC<TripPageProps> = ({
             <p className="text-xs text-slate-300 leading-relaxed">
               Coordinate to walk alongside other women travelling this corridor. Select an open, staffed Safe Haven as your meeting point. A private direct chat will open only if the other traveller accepts (Rule R4).
             </p>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Select Corridor Companion
+              </label>
+              {corridorMembers.length > 0 ? (
+                <select
+                  value={selectedMemberForWalk}
+                  onChange={(e) => setSelectedMemberForWalk(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white"
+                >
+                  {corridorMembers.map((m) => (
+                    <option key={m.userId} value={m.userId}>
+                      {m.handle} ({m.mode}, ~{m.minutesRemaining} min remaining)
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="text-xs text-slate-400 bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+                  Fellow corridor travellers will be notified of your walk invitation.
+                </div>
+              )}
+            </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">

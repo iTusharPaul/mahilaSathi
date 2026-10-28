@@ -4,14 +4,21 @@ import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
 import { SERVER_CONFIG } from '../config.js';
 import { nexconnService } from '../services/nexconn.js';
+import { reportRateLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
-// Submit report (§6.7)
-router.post('/', requireAuth, (req: AuthenticatedRequest, res) => {
+// Submit report (§6.7, §8.4) with rate limiter
+router.post('/', requireAuth, reportRateLimiter, (req: AuthenticatedRequest, res) => {
   const { targetType, targetId, channelId, reason } = req.body;
   if (!targetType || !targetId || !reason) {
     res.status(400).json({ error: 'targetType, targetId, and reason are required' });
+    return;
+  }
+
+  const cleanReason = String(reason).trim();
+  if (cleanReason.length < 3) {
+    res.status(400).json({ error: 'Please provide a descriptive reason for the report' });
     return;
   }
 
@@ -23,12 +30,12 @@ router.post('/', requireAuth, (req: AuthenticatedRequest, res) => {
   db.prepare(`
     INSERT INTO reports (id, reporterId, targetType, targetId, channelId, reason, status, createdAt)
     VALUES (?, ?, ?, ?, ?, ?, 'open', ?)
-  `).run(id, reporterId, targetType, targetId, channelId || null, reason.slice(0, 500), createdAt);
+  `).run(id, reporterId, targetType, targetId, channelId || null, cleanReason.slice(0, 500), createdAt);
 
   res.json({ success: true, reportId: id });
 });
 
-// Admin list open reports (§6.7)
+// Admin list open reports (§6.7, §8.3)
 router.get('/admin', (req, res) => {
   const adminToken = req.headers['x-admin-token'] || req.query.admin_token;
   if (adminToken !== SERVER_CONFIG.ADMIN_TOKEN) {
@@ -57,6 +64,11 @@ router.post('/block', requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 
   const userId = req.user!.userId;
+  if (userId === blockedUserId) {
+    res.status(400).json({ error: 'Cannot block yourself' });
+    return;
+  }
+
   const db = getDb();
 
   db.prepare(`
