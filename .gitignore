@@ -1,10 +1,14 @@
 node_modules/
 dist/
 .env
+.env*
+**/.env*
 *.log
 *.sqlite*
 data/*.db
 data/*.db-shm
 data/*.db-wal
+server/data/
+**/data/
 .DS_Store
 .cache/

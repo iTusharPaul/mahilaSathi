@@ -53,6 +53,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/config', (req, res) => {
+  res.json({
+    geoapifyApiKey: SERVER_CONFIG.GEOAPIFY_API_KEY,
+    nexconnAppKey: SERVER_CONFIG.NEXCONN_APP_KEY,
+  });
+});
+
 // Single Deployable: serve built client in production
 const clientDistPath = path.resolve(process.cwd(), '../client/dist');
 const altClientDistPath = path.resolve(process.cwd(), 'client/dist');

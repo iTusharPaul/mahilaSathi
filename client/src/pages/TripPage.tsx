@@ -559,7 +559,7 @@ export const TripPage: React.FC<TripPageProps> = ({
       </div>
 
       {/* Right Map Canvas with live route and safe havens */}
-      <div className="flex-1 relative flex flex-col p-3 lg:p-4 h-[300px] lg:h-full">
+      <div className="flex-1 relative flex flex-col p-3 lg:p-4 h-[360px] lg:h-full min-h-[360px]">
         <MapComponent
           routes={[route]}
           selectedRouteId={route.id}

@@ -41,3 +41,23 @@ export const CLIENT_CONFIG = {
   GEOAPIFY_API_KEY: (import.meta.env.VITE_GEOAPIFY_API_KEY || '') as string,
   API_BASE_URL: '/api',
 };
+
+let runtimeGeoapifyKey = CLIENT_CONFIG.GEOAPIFY_API_KEY;
+
+export async function getGeoapifyApiKey(): Promise<string> {
+  if (runtimeGeoapifyKey) return runtimeGeoapifyKey;
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.geoapifyApiKey) {
+        runtimeGeoapifyKey = data.geoapifyApiKey;
+        CLIENT_CONFIG.GEOAPIFY_API_KEY = runtimeGeoapifyKey;
+        return runtimeGeoapifyKey;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch runtime config:', err);
+  }
+  return '';
+}
