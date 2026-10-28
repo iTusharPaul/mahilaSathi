@@ -70,8 +70,8 @@ class NexconnEngineManager {
               this.connected = true;
             } else if (status === ConnectionStatus.CONNECTING) {
               state = 'connecting';
-            } else if (status === ConnectionStatus.KICKED_OFFLINE_BY_OTHER_CLIENT) {
-              state = 'error';
+            } else if (status === ConnectionStatus.DISCONNECTED || status === ConnectionStatus.SUSPENDED) {
+              state = 'disconnected';
               this.connected = false;
             }
             this.currentState = state;

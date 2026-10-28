@@ -1,4 +1,5 @@
 // Client-side configuration (Single source of truth for frontend)
+/// <reference types="vite/client" />
 
 export {
   PRODUCT_CONSTANTS,
@@ -9,6 +10,29 @@ export {
   NEXCONN_CUSTOM_MESSAGE_REGISTRATIONS,
   type ScoreFactorKey,
   type CustomMessageType,
+  type TripStartedPayload,
+  type CheckinPayload,
+  type ImOkPayload,
+  type ArrivedPayload,
+  type GuardianSosPayload,
+  type JourneyRoomSosPayload,
+  type HavenCardPayload,
+  type ReportPayload,
+  type LivePingPayload,
+  buildTripStartedPayload,
+  buildCheckinPayload,
+  buildImOkPayload,
+  buildArrivedPayload,
+  buildGuardianSosPayload,
+  buildJourneyRoomSosPayload,
+  buildHavenCardPayload,
+  buildReportPayload,
+  buildLivePingPayload,
+  haversineDistanceMeters,
+  trimRouteGeometry,
+  computeCorridorKey,
+  generateSegmentId,
+  calculateNightActivityScore,
 } from '@nightwise/shared';
 
 export const CLIENT_CONFIG = {

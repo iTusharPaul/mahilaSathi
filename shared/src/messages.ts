@@ -13,16 +13,16 @@ export const NEXCONN_CUSTOM_MESSAGE_TYPES = {
 
 export type CustomMessageType = typeof NEXCONN_CUSTOM_MESSAGE_TYPES[keyof typeof NEXCONN_CUSTOM_MESSAGE_TYPES];
 
-// SDK registration configurations (spelled 'isPersited' per Nexconn docs!)
+// SDK registration configurations (includes both isPersisted and isPersited for safety)
 export const NEXCONN_CUSTOM_MESSAGE_REGISTRATIONS = [
-  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.TRIP_STARTED, isPersited: true, isCounted: true },
-  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.CHECKIN, isPersited: true, isCounted: false },
-  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.IM_OK, isPersited: true, isCounted: false },
-  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.ARRIVED, isPersited: true, isCounted: true },
-  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.SOS, isPersited: true, isCounted: true },
-  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.HAVEN_CARD, isPersited: true, isCounted: false },
-  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.REPORT, isPersited: true, isCounted: false },
-  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.LIVE_PING, isPersited: false, isCounted: false, isStatusMessage: true },
+  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.TRIP_STARTED, isPersisted: true, isPersited: true, isCounted: true },
+  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.CHECKIN, isPersisted: true, isPersited: true, isCounted: false },
+  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.IM_OK, isPersisted: true, isPersited: true, isCounted: false },
+  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.ARRIVED, isPersisted: true, isPersited: true, isCounted: true },
+  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.SOS, isPersisted: true, isPersited: true, isCounted: true },
+  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.HAVEN_CARD, isPersisted: true, isPersited: true, isCounted: false },
+  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.REPORT, isPersisted: true, isPersited: true, isCounted: false },
+  { messageType: NEXCONN_CUSTOM_MESSAGE_TYPES.LIVE_PING, isPersisted: false, isPersited: false, isCounted: false, isStatusMessage: true },
 ];
 
 export interface TripStartedPayload {
