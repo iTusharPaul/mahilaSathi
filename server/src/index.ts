@@ -8,6 +8,7 @@ import { getDb } from './db/index.js';
 import authRoutes from './routes/auth.js';
 import circleRoutes from './routes/circles.js';
 import reportRoutes from './routes/reports.js';
+import planRoutes from './routes/plan.js';
 
 const app = express();
 
@@ -21,6 +22,7 @@ getDb();
 app.use('/api/auth', authRoutes);
 app.use('/api/circles', circleRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/plan', planRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

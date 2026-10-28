@@ -34,8 +34,9 @@ describe('Phase 1 Gate: Auth, Token Flow & Guardian Trip Narration', () => {
 
     // 3. User 1 creates a Guardian Circle
     const db = getDb();
-    const circleId = 'circ_test_gate_1';
-    const nexconnGroupId = 'grp_circle_test_gate_1';
+    const ts = Date.now();
+    const circleId = `circ_test_gate_${ts}`;
+    const nexconnGroupId = `grp_circle_test_gate_${ts}`;
 
     await nexconnService.createGroupChannel(nexconnGroupId, `Guardian Circle — ${u1.handle}`, u1.id, [u1.id]);
     db.prepare('INSERT INTO circles (id, ownerId, nexconnGroupId) VALUES (?, ?, ?)').run(circleId, u1.id, nexconnGroupId);
